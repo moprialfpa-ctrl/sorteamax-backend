@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.db
+.venv/
+venv/
+env/
+migrate.py
+.DS_Store
