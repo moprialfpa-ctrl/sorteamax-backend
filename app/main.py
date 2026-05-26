@@ -25,6 +25,8 @@ app = FastAPI(
 origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://sorteamax-frontend.vercel.app",
+    "https://sorteamax-frontend-*.vercel.app",
 ]
 
 app.add_middleware(
@@ -42,23 +44,3 @@ app.include_router(payments.router)
 app.include_router(deuna_manual.router)
 app.include_router(admin_payments.router)
 app.include_router(bank_accounts.router)
-
-
-@app.get("/")
-def root():
-    return {
-        "message": "SorteaMax API V2 funcionando",
-        "modules": ["auth", "users", "draws", "payments", "deuna_manual", "admin_payments", "bank_accounts"],
-    }
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
-
-
-@app.get("/health/db")
-def health_db():
-    with engine.connect() as connection:
-        connection.execute(text("SELECT 1"))
-    return {"status": "ok", "database": "connected"}
