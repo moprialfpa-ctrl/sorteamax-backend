@@ -63,6 +63,8 @@ class Payment(Base):
     status = Column(String, default="pending_manual", nullable=False)
     provider = Column(String, default="deuna_qr", nullable=True)
     reference_note = Column(String, nullable=True)
+    transaction_number = Column(String, nullable=True)
+    receipt_image = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     confirmed_at = Column(DateTime, nullable=True)
 
