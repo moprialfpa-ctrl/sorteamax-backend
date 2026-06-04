@@ -183,3 +183,111 @@ class BankAccountOut(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+    # =========================
+# ADMIN SCHEMAS
+# =========================
+
+class AdminDashboardSummaryOut(BaseModel):
+    total_users: int
+    total_admins: int
+    total_bank_accounts: int
+    total_draws: int
+    selling_draws: int
+    closed_draws: int
+    drawn_draws: int
+    total_payments: int
+    pending_payments: int
+    confirmed_payments: int
+    total_tickets: int
+    total_winning_tickets: int
+    total_free_ticket_credits: int
+    available_free_ticket_credits: int
+    used_free_ticket_credits: int
+    total_paid_prizes: float
+
+
+class AdminUserListItemOut(BaseModel):
+    id: str
+    full_name: str
+    email: EmailStr
+    role: str
+    created_at: datetime
+    has_bank_account: bool
+    bank_name: str | None = None
+    payments_count: int
+    tickets_count: int
+    winning_tickets_count: int
+    free_tickets_count: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdminTicketDetailOut(BaseModel):
+    id: str
+    payment_id: str | None = None
+    user_id: str
+    draw_id: str
+    draw_title: str | None = None
+    numbers: list[int]
+    hits: int
+    prize_type: str | None = None
+    prize_amount: float
+    is_free_ticket: bool
+    source_credit_id: str | None = None
+    created_at: datetime
+
+
+class AdminPaymentDetailOut(BaseModel):
+    id: str
+    user_id: str
+    user_name: str | None = None
+    user_email: EmailStr | None = None
+    draw_id: str | None = None
+    draw_title: str | None = None
+    quantity: int
+    amount: float
+    status: str
+    provider: str | None = None
+    reference_note: str | None = None
+    created_at: datetime
+    confirmed_at: datetime | None = None
+    generated_tickets_count: int = 0
+
+
+class AdminFreeTicketCreditOut(BaseModel):
+    id: str
+    user_id: str
+    draw_id: str
+    draw_title: str | None = None
+    source_ticket_id: str | None = None
+    status: str
+    created_at: datetime
+    used_at: datetime | None = None
+
+
+class AdminWinnerOut(BaseModel):
+    ticket_id: str
+    user_id: str
+    user_name: str | None = None
+    user_email: EmailStr | None = None
+    draw_id: str
+    draw_title: str | None = None
+    numbers: list[int]
+    hits: int
+    prize_type: str | None = None
+    prize_amount: float
+    is_free_ticket: bool
+    created_at: datetime
+
+
+class AdminUserDetailOut(BaseModel):
+    id: str
+    full_name: str
+    email: EmailStr
+    role: str
+    created_at: datetime
+    bank_account: BankAccountOut | None = None
+    payments: list[AdminPaymentDetailOut]
+    tickets: list[AdminTicketDetailOut]
+    winning_tickets: list[AdminWinnerOut]
+    free_ticket_credits: list[AdminFreeTicketCreditOut]

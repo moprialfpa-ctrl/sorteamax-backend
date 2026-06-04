@@ -6,7 +6,7 @@ import json
 
 from app.database import get_db
 from app.models import Draw, Ticket, FreeTicketCredit
-from app.schemas import DrawCreate
+from app.schemas import DrawCreate, DrawOut
 from app.dependencies import get_current_user
 
 router = APIRouter(prefix="/draws", tags=["Draws"])
@@ -16,7 +16,27 @@ def generate_extraction_order():
     return random.sample(range(1, 27), 11)
 
 
-@router.post("/")
+def serialize_draw(draw: Draw) -> dict:
+    """Convierte un objeto Draw a dict con los campos Text parseados a lista."""
+    return {
+        "id": draw.id,
+        "title": draw.title,
+        "ticket_price": draw.ticket_price,
+        "sales_threshold_amount": draw.sales_threshold_amount,
+        "tickets_sold": draw.tickets_sold,
+        "sales_amount": draw.sales_amount,
+        "jackpot_pool": draw.jackpot_pool,
+        "tier10_pool": draw.tier10_pool,
+        "free_ticket_pool": draw.free_ticket_pool,
+        "status": draw.status,
+        "winning_numbers": json.loads(draw.winning_numbers) if draw.winning_numbers else None,
+        "created_at": draw.created_at,
+        "closed_at": draw.closed_at,
+        "executed_at": draw.executed_at,
+    }
+
+
+@router.post("/", response_model=DrawOut)
 def create_draw(
     payload: DrawCreate,
     db: Session = Depends(get_db),
@@ -31,24 +51,24 @@ def create_draw(
         sales_threshold_amount=payload.sales_threshold_amount,
         status="selling"
     )
-
     db.add(draw)
     db.commit()
     db.refresh(draw)
-    return draw
+    return serialize_draw(draw)
 
 
-@router.get("/")
+@router.get("/", response_model=list[DrawOut])
 def list_draws(db: Session = Depends(get_db)):
-    return db.query(Draw).all()
+    draws = db.query(Draw).all()
+    return [serialize_draw(d) for d in draws]
 
 
-@router.get("/{draw_id}")
+@router.get("/{draw_id}", response_model=DrawOut)
 def get_draw(draw_id: str, db: Session = Depends(get_db)):
     draw = db.query(Draw).filter(Draw.id == draw_id).first()
     if not draw:
         raise HTTPException(status_code=404, detail="Sorteo no existe")
-    return draw
+    return serialize_draw(draw)
 
 
 @router.post("/{draw_id}/close")
@@ -78,7 +98,6 @@ def close_draw(
 
     draw.status = "closed"
     draw.closed_at = datetime.utcnow()
-
     db.commit()
     db.refresh(draw)
 
