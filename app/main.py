@@ -1,4 +1,3 @@
-# app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -7,7 +6,6 @@ from app.database import engine, Base
 from app import models
 
 from app.routers import auth, users, draws, payments, deuna_manual, admin_payments, bank_accounts, admin
-
 
 Base.metadata.create_all(bind=engine)
 
@@ -21,6 +19,7 @@ origins = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
     "https://sorteamax-frontend.vercel.app",
+    "https://sorteamax-frontend-mv401go08-moprialfpa-ctrls-projects.vercel.app",
 ]
 
 app.add_middleware(

@@ -1,54 +1,42 @@
 # app/routers/deuna_manual.py
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from datetime import datetime
+from typing import Optional
 
 from app.database import get_db
 from app.models import Payment, Draw
 from app.schemas import PaymentOut
 from app.dependencies import get_current_user
+from pydantic import BaseModel, Field
 
 router = APIRouter(prefix="/deuna", tags=["deuna-manual"])
-
-
-class DeunaManualPaymentRequest:
-    """
-    Usaremos un esquema simple interno, para no tocar schemas.py.
-    Si quieres, luego lo pasamos a Pydantic en schemas.py.
-    """
-    def __init__(self, draw_id: str, amount: float, quantity: int = 1, reference_note: str | None = None):
-        self.draw_id = draw_id
-        self.amount = amount
-        self.quantity = quantity
-        self.reference_note = reference_note
-
-
-from pydantic import BaseModel, Field
 
 
 class DeunaManualPaymentCreate(BaseModel):
     draw_id: str = Field(..., description="ID del sorteo")
     amount: float = Field(..., gt=0, description="Monto a pagar en USD")
-    quantity: int = Field(default=1, gt=0, description="Cantidad de boletos (coincide con tu lógica)")
-    reference_note: str | None = Field(
-        default=None,
-        description="Referencia del usuario: 'pagué a las 15h10, nombre en Deuna...'"
-    )
+    quantity: int = Field(default=1, gt=0, description="Cantidad de boletos")
+    reference_note: Optional[str] = Field(default=None, description="Nota del pago")
+    transaction_number: Optional[str] = Field(default=None, description="Numero de transaccion del comprobante")
+    receipt_image: Optional[str] = Field(default=None, description="Imagen del comprobante en base64")
 
 
 class DeunaManualPaymentOut(PaymentOut):
-    reference_note: str | None = None
+    reference_note: Optional[str] = None
+    transaction_number: Optional[str] = None
+    receipt_image: Optional[str] = None
 
 
 @router.post("/payments/manual", response_model=DeunaManualPaymentOut)
 def create_manual_deuna_payment(
     payload: DeunaManualPaymentCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     """
-    El usuario ve el QR Deuna, paga en la app y luego llama a este endpoint para registrar el pago.
+    El usuario ve el QR Deuna, paga en la app y luego llama a este endpoint
+    para registrar el pago adjuntando numero de transaccion y/o comprobante.
     """
     draw = db.query(Draw).filter(Draw.id == payload.draw_id).first()
     if not draw:
@@ -61,24 +49,28 @@ def create_manual_deuna_payment(
             detail=f"El monto esperado es {expected_amount:.2f} para {payload.quantity} boletos"
         )
 
+    # Validar que venga al menos numero de transaccion O comprobante
+    if not payload.transaction_number and not payload.receipt_image:
+        raise HTTPException(
+            status_code=400,
+            detail="Debes ingresar el numero de transaccion o adjuntar el comprobante de pago"
+        )
+
     payment = Payment(
         user_id=current_user.id,
         draw_id=draw.id,
         quantity=payload.quantity,
         amount=payload.amount,
-        status="pending_manual",  # usamos string porque tu modelo usa String
+        status="pending_manual",
+        reference_note=payload.reference_note,
+        transaction_number=payload.transaction_number,
+        receipt_image=payload.receipt_image,
         created_at=datetime.utcnow(),
     )
-
-    # Guardamos la nota de referencia en un campo adicional si quieres:
-    # como tu modelo Payment no tiene reference_note, la podemos ignorar
-    # o agregar un campo nuevo en la BD; por ahora solo la ignoramos a nivel de modelo.
-
     db.add(payment)
     db.commit()
     db.refresh(payment)
 
-    # Convertimos a PaymentOut y le añadimos reference_note (None por ahora)
     return DeunaManualPaymentOut(
         id=payment.id,
         user_id=payment.user_id,
@@ -88,19 +80,17 @@ def create_manual_deuna_payment(
         status=payment.status,
         created_at=payment.created_at,
         confirmed_at=payment.confirmed_at,
-        reference_note=payload.reference_note,
+        reference_note=payment.reference_note,
+        transaction_number=payment.transaction_number,
+        receipt_image=payment.receipt_image,
     )
 
 
 @router.get("/payments/mine", response_model=list[PaymentOut])
 def list_my_deuna_payments(
     db: Session = Depends(get_db),
-    current_user = Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
-    """
-    Lista los pagos (de cualquier tipo) del usuario actual.
-    Puedes filtrar por status/provider en el frontend.
-    """
     return (
         db.query(Payment)
         .filter(Payment.user_id == current_user.id)
