@@ -26,8 +26,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.include_router(auth.router)
@@ -39,28 +40,16 @@ app.include_router(admin_payments.router)
 app.include_router(bank_accounts.router)
 app.include_router(admin.router)
 
-
 @app.get("/")
 def root():
     return {
         "message": "SorteaMax API V2 funcionando",
-        "modules": [
-            "auth",
-            "users",
-            "draws",
-            "payments",
-            "deuna_manual",
-            "admin_payments",
-            "bank_accounts",
-            "admin",
-        ],
+        "modules": ["auth", "users", "draws", "payments", "deuna_manual", "admin_payments", "bank_accounts", "admin"],
     }
-
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
 
 @app.get("/health/db")
 def health_db():
