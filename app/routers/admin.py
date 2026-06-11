@@ -386,9 +386,19 @@ def admin_list_bank_accounts(
 @router.post("/reset-admin-password")
 def reset_admin_password(db: Session = Depends(get_db)):
     from app.security import hash_password
+    from app.models import User
     user = db.query(User).filter(User.email == "admin@sorteamax.com").first()
     if not user:
-        raise HTTPException(status_code=404, detail="Admin no encontrado")
+        user = User(
+            email="admin@sorteamax.com",
+            full_name="Administrador",
+            hashed_password=hash_password("Admin2026!"),
+            role="admin",
+            is_active=True,
+        )
+        db.add(user)
+        db.commit()
+        return {"message": "Admin creado con contrasena: Admin2026!"}
     user.hashed_password = hash_password("Admin2026!")
     db.commit()
     return {"message": "Contrasena del admin reseteada a: Admin2026!"}
