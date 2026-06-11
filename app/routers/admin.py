@@ -402,3 +402,10 @@ def reset_admin_password(db: Session = Depends(get_db)):
     user.hashed_password = hash_password("Admin2026!")
     db.commit()
     return {"message": "Contrasena del admin reseteada a: Admin2026!"}
+
+
+                  @router.get("/list-all-users")
+def list_all_users(db: Session = Depends(get_db)):
+    from app.models import User
+    users = db.query(User).all()
+    return [{"id": u.id, "email": u.email, "role": u.role, "is_active": u.is_active} for u in users]
