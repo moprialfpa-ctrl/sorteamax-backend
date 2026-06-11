@@ -403,8 +403,7 @@ def reset_admin_password(db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Contrasena del admin reseteada a: Admin2026!"}
 
-
-                  @router.get("/list-all-users")
+@router.get("/list-all-users")
 def list_all_users(db: Session = Depends(get_db)):
     from app.models import User
     users = db.query(User).all()
